@@ -46,8 +46,8 @@ Start
   │
   └──> Final Phase: Testing and Documentation
           │
-          ├── Test Platform Functionality and Fix Bugs
+          ├── Test Platform Functionality and Bugs
           │
           ├── Document Project Steps and Features
           │
-          └── Prepare for Deployment and Demo
+          └── Prepare for what can we Deployment and Demo
