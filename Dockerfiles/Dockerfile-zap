@@ -1,0 +1,21 @@
+# Use the stable ZAP image as the base image
+FROM zaproxy/zap-stable
+
+# Set the working directory
+WORKDIR /usr/src/app
+
+# Switch to root user to install necessary packages
+USER root
+
+# Update apt and install python3 and pip
+RUN apt-get update && apt-get install -y python3 python3-pip
+
+# Copy your script into the container
+COPY script.py .
+
+# Make the script executable
+RUN chmod +x script.py
+
+# Allow URL input dynamically
+ENTRYPOINT ["python3", "script.py"]
+CMD []
