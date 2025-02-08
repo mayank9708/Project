@@ -4,8 +4,8 @@ pipeline {
     environment {
         NMAP_IMAGE = 'my-nmap-scanner'
         ZAP_IMAGE = 'my-zap-scanner'
-        NMAP_NETWORK = '192.168.1.1' // Define the network you want to scan
-        ZAP_URL = 'http://example.com' // Define the URL for ZAP scan
+        NMAP_NETWORK = '192.168.1.1' // Define the network to scan
+        ZAP_URL = 'http://example.com' // Define the target URL for ZAP scan
     }
 
     stages {
@@ -19,6 +19,19 @@ pipeline {
         stage('Check Workspace') {
             steps {
                 sh 'pwd && ls -R'
+            }
+        }
+
+        stage('Validate Dockerfiles') {
+            steps {
+                script {
+                    if (!fileExists("$WORKSPACE/Dockerfiles/Dockerfile-nmap")) {
+                        error "Dockerfile-nmap is missing in $WORKSPACE/Dockerfiles"
+                    }
+                    if (!fileExists("$WORKSPACE/Dockerfiles/Dockerfile-zap")) {
+                        error "Dockerfile-zap is missing in $WORKSPACE/Dockerfiles"
+                    }
+                }
             }
         }
 
@@ -36,7 +49,9 @@ pipeline {
             steps {
                 script {
                     echo "Running Nmap scan..."
-                    sh 'docker run --rm -v $WORKSPACE/scripts:/scripts ${NMAP_IMAGE} python3 /scripts/scan.py ${NMAP_NETWORK} > $WORKSPACE/reports/nmap_scan_report.txt'
+                    sh '''
+                        docker run --rm -v $WORKSPACE:/mnt ${NMAP_IMAGE} python3 /mnt/scripts/scan.py ${NMAP_NETWORK} > $WORKSPACE/reports/nmap_scan_report.txt
+                    '''
                 }
             }
         }
@@ -45,11 +60,16 @@ pipeline {
             steps {
                 script {
                     echo "Running OWASP ZAP scan..."
-                    sh 'docker run --rm -v $WORKSPACE/scripts:/scripts ${ZAP_IMAGE} python3 /scripts/script.py ${ZAP_URL}'
-
+                    sh '''
+                        docker run --rm -v $WORKSPACE:/mnt ${ZAP_IMAGE} python3 /mnt/scripts/script.py ${ZAP_URL}
+                    '''
+                    
                     sleep(time: 30, unit: 'SECONDS')
 
-                    sh 'docker ps -q --filter "ancestor=${ZAP_IMAGE}" | xargs -I {} docker cp {}:/usr/src/app/results.html $WORKSPACE/reports/zap_scan_report.html'
+                    echo "Copying ZAP scan report..."
+                    sh '''
+                        docker run --rm -v $WORKSPACE/reports:/mnt/reports ${ZAP_IMAGE} cp /usr/src/app/results.html /mnt/reports/zap_scan_report.html
+                    '''
                 }
             }
         }
