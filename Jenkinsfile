@@ -73,14 +73,13 @@ pipeline {
                 script {
                     echo "🛡️ Running OWASP ZAP scan..."
                     sh '''
-                        docker run --rm -v $WORKSPACE/scripts:/mnt/scripts -v $WORKSPACE/reports:/mnt/reports ${ZAP_IMAGE} python3 /mnt/scripts/script.py ${ZAP_URL}
+                        docker run --rm -v $WORKSPACE/scripts:/mnt/scripts -v $WORKSPACE/reports:/mnt/reports ${ZAP_IMAGE} python3 /mnt/scripts/script.py "${ZAP_URL}"
                     '''
                     
-                    sleep(time: 30, unit: 'SECONDS')
-
                     echo "📄 Copying ZAP scan report..."
                     sh '''
-                        docker run --rm -v $WORKSPACE/reports:/mnt/reports ${ZAP_IMAGE} cp /usr/src/app/results.html /mnt/reports/zap_scan_report.html
+                        docker run --rm -v $WORKSPACE/reports:/mnt/reports ${ZAP_IMAGE} \
+                            cp /zap/reports/report.html /mnt/reports/zap_scan_report.html
                     '''
                 }
             }
