@@ -1,47 +1,39 @@
 import subprocess
-import os
-import time
+import shutil
+import sys
 
-def start_zap_container(url):
-    print("Starting OWASP ZAP container...")
-    container = subprocess.run([
-        'docker', 'run', '-d', '-p', '8080:8080', 'zaproxy/zap-stable', 
-        'zap-baseline.py', '-t', url, '-r', '/zap/wrk/output/results.html', '-l', 'INFO'
-    ], capture_output=True, text=True)
+# Check if Docker is installed and available
+docker_path = shutil.which("docker")
+if not docker_path:
+    print("Error: Docker is not installed or not found in PATH")
+    sys.exit(1)
+
+# Function to run a ZAP scan using Docker
+def run_zap_scan(target_url):
+    try:
+        # Running ZAP scan inside Docker
+        zap_command = [
+            docker_path, "run", "--rm",
+            "-v", "/var/lib/jenkins/workspace/PTAAS/reports:/zap/reports",
+            "owasp/zap2docker-stable",
+            "zap-baseline.py", "-t", target_url, "-r", "/zap/reports/report.html"
+        ]
+        print(f"Running command: {' '.join(zap_command)}")
+        result = subprocess.run(zap_command, capture_output=True, text=True, check=True)
+        
+        print("ZAP Scan Completed. Report saved in /zap/reports")
+        print(result.stdout)
     
-    if container.returncode == 0:
-        print("OWASP ZAP container started.")
-        container_id = container.stdout.strip()
-        print(f"Container ID: {container_id}")
-        
-        # Wait for a bit to let the scan complete
-        print("Starting scan for", url)
-        time.sleep(10)  # Adjust the sleep time based on the scan duration
+    except subprocess.CalledProcessError as e:
+        print(f"Error executing ZAP scan: {e}")
+    except FileNotFoundError:
+        print("Error: Docker command not found. Ensure Docker is installed inside the container.")
 
-        # Copy the results to the local machine
-        print("Fetching the results...")
-        subprocess.run(['docker', 'cp', f'{container_id}:/zap/wrk/output/results.html', './results.html'])
-
-        # Print out the result file path
-        print("Scan completed. The results are saved in ./results.html.")
-        
-        # Optionally, open the results in the default web browser (Linux)
-        try:
-            subprocess.run(['xdg-open', 'results.html'])
-        except Exception as e:
-            print(f"Could not open the HTML report: {e}")
-        
-        # Stop the container
-        print("Stopping OWASP ZAP container...")
-        subprocess.run(['docker', 'stop', container_id])
-        subprocess.run(['docker', 'rm', container_id])
-    else:
-        print("Error starting the ZAP container:", container.stderr)
-
-def main():
-    url = input("Enter the URL to scan: ")
-    start_zap_container(url)
-
+# Main execution
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) < 2:
+        print("Usage: script.py <target_url>")
+        sys.exit(1)
 
+    target_url = sys.argv[1]
+    run_zap_scan(target_url)
