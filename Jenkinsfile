@@ -25,17 +25,22 @@ pipeline {
         stage('Validate Dockerfiles and Scripts') {
             steps {
                 script {
-                    if (!fileExists("$WORKSPACE/Dockerfiles/Dockerfile-nmap")) {
-                        error "❌ ERROR: Dockerfile-nmap is missing at $WORKSPACE/Dockerfiles/"
+                    def missingFiles = []
+                    def requiredFiles = [
+                        "Dockerfiles/Dockerfile-nmap",
+                        "Dockerfiles/Dockerfile-zap",
+                        "scripts/scan.py",
+                        "scripts/script.py"
+                    ]
+                    
+                    requiredFiles.each { file ->
+                        if (!fileExists("$WORKSPACE/${file}")) {
+                            missingFiles.add(file)
+                        }
                     }
-                    if (!fileExists("$WORKSPACE/Dockerfiles/Dockerfile-zap")) {
-                        error "❌ ERROR: Dockerfile-zap is missing at $WORKSPACE/Dockerfiles/"
-                    }
-                    if (!fileExists("$WORKSPACE/scripts/scan.py")) {
-                        error "❌ ERROR: scan.py is missing at $WORKSPACE/scripts/"
-                    }
-                    if (!fileExists("$WORKSPACE/scripts/script.py")) {
-                        error "❌ ERROR: script.py is missing at $WORKSPACE/scripts/"
+
+                    if (missingFiles.size() > 0) {
+                        error "❌ ERROR: Missing files: ${missingFiles.join(', ')}"
                     }
                 }
             }
@@ -62,7 +67,7 @@ pipeline {
                 script {
                     echo "🔍 Running Nmap scan..."
                     sh '''
-                        docker run --rm -v $WORKSPACE/scripts:/mnt/scripts -v $WORKSPACE/reports:/mnt/reports ${NMAP_IMAGE} python3 /mnt/scripts/scan.py ${NMAP_NETWORK} > $WORKSPACE/reports/nmap_scan_report.txt
+                        docker run --rm -v $WORKSPACE/scripts:/mnt/scripts -v $WORKSPACE/reports:/mnt/reports ${NMAP_IMAGE} python3 /mnt/scripts/scan.py ${NMAP_NETWORK} | tee $WORKSPACE/reports/nmap_scan_report.txt
                     '''
                 }
             }
@@ -73,7 +78,7 @@ pipeline {
                 script {
                     echo "🛡️ Running OWASP ZAP scan..."
                     sh '''
-                        docker run --rm -v $WORKSPACE/scripts:/mnt/scripts -v $WORKSPACE/reports:/mnt/reports ${ZAP_IMAGE} python3 /mnt/scripts/script.py ${ZAP_URL} > $WORKSPACE/reports/zap_scan_output.txt
+                        docker run --rm -v $WORKSPACE/scripts:/mnt/scripts -v $WORKSPACE/reports:/mnt/reports ${ZAP_IMAGE} python3 /mnt/scripts/script.py ${ZAP_URL} | tee $WORKSPACE/reports/zap_scan_output.txt
                     '''
                     
                     sleep(time: 30, unit: 'SECONDS')
