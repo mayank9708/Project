@@ -47,6 +47,7 @@ pipeline {
                     echo "⚙️ Building Docker images..."
                     sh '''
                         echo "Building Nmap image..."
+                        ls -l $WORKSPACE/Dockerfiles/
                         docker build -t ${NMAP_IMAGE} -f $WORKSPACE/Dockerfiles/Dockerfile-nmap $WORKSPACE
                         
                         echo "Building ZAP image..."
@@ -61,7 +62,11 @@ pipeline {
                 script {
                     echo "🔍 Running Nmap scan..."
                     sh '''
-                        docker run --rm -v $WORKSPACE/scripts:/mnt/scripts -v $WORKSPACE/reports:/mnt/reports ${NMAP_IMAGE} python3 /mnt/scripts/scan.py ${NMAP_NETWORK} > $WORKSPACE/reports/nmap_scan_report.txt
+                        docker run --rm \
+                        -v $WORKSPACE/scripts:/mnt/scripts \
+                        -v $WORKSPACE/reports:/mnt/reports \
+                        ${NMAP_IMAGE} python3 /mnt/scripts/scan.py ${NMAP_NETWORK} \
+                        > $WORKSPACE/reports/nmap_scan_report.txt
                     '''
                 }
             }
@@ -72,19 +77,25 @@ pipeline {
                 script {
                     echo "🛡️ Running OWASP ZAP scan..."
                     
-                    // Check if ZAP_URL is being correctly read
+                    // Debugging: Print the URL before using it
                     echo "ZAP_URL is: ${ZAP_URL}"
 
-                    sh '''
-                        docker run --rm -v $WORKSPACE/scripts:/mnt/scripts -v $WORKSPACE/reports:/mnt/reports ${ZAP_IMAGE} python3 /mnt/scripts/script.py "${ZAP_URL}"
-                    '''
+                    // Ensure the variable is expanded correctly inside the shell command
+                    sh """
+                        docker run --rm \
+                        -v $WORKSPACE/scripts:/mnt/scripts \
+                        -v $WORKSPACE/reports:/mnt/reports \
+                        ${ZAP_IMAGE} python3 /mnt/scripts/script.py '${ZAP_URL}'
+                    """
                     
                     sleep(time: 30, unit: 'SECONDS')
 
                     echo "📄 Copying ZAP scan report..."
-                    sh '''
-                        docker run --rm -v $WORKSPACE/reports:/mnt/reports ${ZAP_IMAGE} cp /usr/src/app/results.html /mnt/reports/zap_scan_report.html
-                    '''
+                    sh """
+                        docker run --rm \
+                        -v $WORKSPACE/reports:/mnt/reports \
+                        ${ZAP_IMAGE} cp /usr/src/app/results.html /mnt/reports/zap_scan_report.html
+                    """
                 }
             }
         }
