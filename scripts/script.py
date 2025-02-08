@@ -1,38 +1,33 @@
-import subprocess
-import shutil
 import sys
+import time
+from zapv2 import ZAPv2
 
-# Check if Docker is installed and available
-docker_path = shutil.which("docker")
-if not docker_path:
-    print("Error: Docker is not installed or not found in PATH")
-    sys.exit(1)
-
-# Function to run a ZAP scan using Docker
 def run_zap_scan(target_url):
-    try:
-        # Running ZAP scan inside Docker
-        zap_command = [
-            docker_path, "run", "--rm",
-            "-v", "/var/lib/jenkins/workspace/PTAAS/reports:/zap/reports",
-            "owasp/zap2docker-stable",
-            "zap-baseline.py", "-t", target_url, "-r", "/zap/reports/report.html"
-        ]
-        print(f"Running command: {' '.join(zap_command)}")
-        result = subprocess.run(zap_command, capture_output=True, text=True, check=True)
-        
-        print("ZAP Scan Completed. Report saved in /zap/reports")
-        print(result.stdout)
-    
-    except subprocess.CalledProcessError as e:
-        print(f"Error executing ZAP scan: {e}")
-    except FileNotFoundError:
-        print("Error: Docker command not found. Ensure Docker is installed inside the container.")
+    zap = ZAPv2()
 
-# Main execution
+    print(f"🛡️ Starting OWASP ZAP scan on: {target_url}")
+
+    # Open the URL
+    zap.urlopen(target_url)
+    time.sleep(2)  # Wait for ZAP to process
+
+    # Passive scan
+    print("🔍 Running passive scan...")
+    while int(zap.pscan.records_to_scan) > 0:
+        print(f"⏳ Pending records: {zap.pscan.records_to_scan}")
+        time.sleep(2)
+
+    # Save the report inside the mounted reports directory
+    report_path = "/mnt/reports/zap_scan_report.html"
+    print(f"📄 Saving report to: {report_path}")
+    with open(report_path, "w") as report_file:
+        report_file.write(zap.core.htmlreport())
+
+    print("✅ OWASP ZAP scan completed!")
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: script.py <target_url>")
+        print("❌ ERROR: No URL provided. Usage: python script.py <URL>")
         sys.exit(1)
 
     target_url = sys.argv[1]
