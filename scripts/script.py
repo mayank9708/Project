@@ -2,38 +2,34 @@ import sys
 import time
 from zapv2 import ZAPv2
 
-def run_zap_scan(target_url):
-    zap = ZAPv2()
+# Ensure the script receives a URL argument
+if len(sys.argv) < 2:
+    print("❌ ERROR: Missing URL argument. Usage: python script.py <URL>")
+    sys.exit(1)
 
-    print(f"🛡️ Starting OWASP ZAP scan on: {target_url}")
+# Read target URL from command line argument
+target_url = sys.argv[1]
+print(f"🛡️ Starting OWASP ZAP scan on: {target_url}")
 
-    # Ensure the URL is correctly formatted
-    if not target_url.startswith("http://") and not target_url.startswith("https://"):
-        print("❌ ERROR: Invalid URL format. Use http:// or https://")
-        sys.exit(1)
+# Initialize ZAP API client
+zap = ZAPv2()
 
-    # Open the URL
-    zap.urlopen(target_url)
-    time.sleep(2)
+# Open the target URL
+print(f"📡 Accessing {target_url} via ZAP proxy...")
+zap.urlopen(target_url)
+time.sleep(2)
 
-    # Passive scan
-    print("🔍 Running passive scan...")
-    while int(zap.pscan.records_to_scan) > 0:
-        print(f"⏳ Pending records: {zap.pscan.records_to_scan}")
-        time.sleep(2)
+# Start active scan
+print(f"🚀 Starting Active Scan on {target_url}...")
+scan_id = zap.ascan.scan(target_url)
+while int(zap.ascan.status(scan_id)) < 100:
+    print(f"⏳ Scan progress: {zap.ascan.status(scan_id)}%")
+    time.sleep(5)
 
-    # Save the report
-    report_path = "/mnt/reports/zap_scan_report.html"
-    print(f"📄 Saving report to: {report_path}")
-    with open(report_path, "w") as report_file:
-        report_file.write(zap.core.htmlreport())
+print("✅ Scan completed!")
 
-    print("✅ OWASP ZAP scan completed!")
+# Save the report
+with open("/usr/src/app/results.html", "w") as report_file:
+    report_file.write(zap.core.htmlreport())
 
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("❌ ERROR: Missing URL argument. Usage: python script.py <URL>")
-        sys.exit(1)
-
-    target_url = sys.argv[1]
-    run_zap_scan(target_url)
+print("📄 Report saved as results.html")
