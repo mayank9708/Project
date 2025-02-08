@@ -7,9 +7,14 @@ def run_zap_scan(target_url):
 
     print(f"🛡️ Starting OWASP ZAP scan on: {target_url}")
 
+    # Ensure the URL is correctly formatted
+    if not target_url.startswith("http://") and not target_url.startswith("https://"):
+        print("❌ ERROR: Invalid URL format. Use http:// or https://")
+        sys.exit(1)
+
     # Open the URL
     zap.urlopen(target_url)
-    time.sleep(2)  # Wait for ZAP to process
+    time.sleep(2)
 
     # Passive scan
     print("🔍 Running passive scan...")
@@ -17,7 +22,7 @@ def run_zap_scan(target_url):
         print(f"⏳ Pending records: {zap.pscan.records_to_scan}")
         time.sleep(2)
 
-    # Save the report inside the mounted reports directory
+    # Save the report
     report_path = "/mnt/reports/zap_scan_report.html"
     print(f"📄 Saving report to: {report_path}")
     with open(report_path, "w") as report_file:
@@ -26,8 +31,8 @@ def run_zap_scan(target_url):
     print("✅ OWASP ZAP scan completed!")
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("❌ ERROR: No URL provided. Usage: python script.py <URL>")
+    if len(sys.argv) != 2:
+        print("❌ ERROR: Missing URL argument. Usage: python script.py <URL>")
         sys.exit(1)
 
     target_url = sys.argv[1]
