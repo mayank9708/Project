@@ -2,13 +2,19 @@ import sys
 import time
 from zapv2 import ZAPv2
 
-# Ensure the script receives a URL argument
-if len(sys.argv) < 2:
-    print("❌ ERROR: Missing URL argument. Usage: python script.py <URL>")
+# Ensure we receive exactly one argument
+if len(sys.argv) != 2:
+    print(f"❌ ERROR: Expected 1 argument, got {len(sys.argv)-1}. Usage: python script.py <URL>")
     sys.exit(1)
 
-# Read target URL from command line argument
-target_url = sys.argv[1]
+# Read the target URL
+target_url = sys.argv[1].strip()
+
+# Validate that it's a full URL
+if not target_url.startswith("http://") and not target_url.startswith("https://"):
+    print(f"❌ ERROR: Invalid URL '{target_url}'. Ensure it starts with 'http://' or 'https://'.")
+    sys.exit(1)
+
 print(f"🛡️ Starting OWASP ZAP scan on: {target_url}")
 
 # Initialize ZAP API client
