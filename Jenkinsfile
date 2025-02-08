@@ -47,7 +47,6 @@ pipeline {
                     echo "⚙️ Building Docker images..."
                     sh '''
                         echo "Building Nmap image..."
-                        ls -l $WORKSPACE/Dockerfiles/
                         docker build -t ${NMAP_IMAGE} -f $WORKSPACE/Dockerfiles/Dockerfile-nmap $WORKSPACE
                         
                         echo "Building ZAP image..."
@@ -72,14 +71,19 @@ pipeline {
             steps {
                 script {
                     echo "🛡️ Running OWASP ZAP scan..."
+                    
+                    // Check if ZAP_URL is being correctly read
+                    echo "ZAP_URL is: ${ZAP_URL}"
+
                     sh '''
                         docker run --rm -v $WORKSPACE/scripts:/mnt/scripts -v $WORKSPACE/reports:/mnt/reports ${ZAP_IMAGE} python3 /mnt/scripts/script.py "${ZAP_URL}"
                     '''
                     
+                    sleep(time: 30, unit: 'SECONDS')
+
                     echo "📄 Copying ZAP scan report..."
                     sh '''
-                        docker run --rm -v $WORKSPACE/reports:/mnt/reports ${ZAP_IMAGE} \
-                            cp /zap/reports/report.html /mnt/reports/zap_scan_report.html
+                        docker run --rm -v $WORKSPACE/reports:/mnt/reports ${ZAP_IMAGE} cp /usr/src/app/results.html /mnt/reports/zap_scan_report.html
                     '''
                 }
             }
