@@ -22,14 +22,20 @@ pipeline {
             }
         }
 
-        stage('Validate Dockerfiles') {
+        stage('Validate Dockerfiles and Scripts') {
             steps {
                 script {
                     if (!fileExists("$WORKSPACE/Dockerfiles/Dockerfile-nmap")) {
-                        error "Dockerfile-nmap is missing in $WORKSPACE/Dockerfiles"
+                        error "❌ ERROR: Dockerfile-nmap is missing at $WORKSPACE/Dockerfiles/"
                     }
                     if (!fileExists("$WORKSPACE/Dockerfiles/Dockerfile-zap")) {
-                        error "Dockerfile-zap is missing in $WORKSPACE/Dockerfiles"
+                        error "❌ ERROR: Dockerfile-zap is missing at $WORKSPACE/Dockerfiles/"
+                    }
+                    if (!fileExists("$WORKSPACE/scripts/scan.py")) {
+                        error "❌ ERROR: scan.py is missing at $WORKSPACE/scripts/"
+                    }
+                    if (!fileExists("$WORKSPACE/scripts/script.py")) {
+                        error "❌ ERROR: script.py is missing at $WORKSPACE/scripts/"
                     }
                 }
             }
@@ -38,9 +44,15 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 script {
-                    echo "Building Docker images..."
-                    sh 'docker build -t ${NMAP_IMAGE} -f $WORKSPACE/Dockerfiles/Dockerfile-nmap $WORKSPACE'
-                    sh 'docker build -t ${ZAP_IMAGE} -f $WORKSPACE/Dockerfiles/Dockerfile-zap $WORKSPACE'
+                    echo "⚙️ Building Docker images..."
+                    sh '''
+                        echo "Building Nmap image..."
+                        ls -l $WORKSPACE/Dockerfiles/
+                        docker build -t ${NMAP_IMAGE} -f $WORKSPACE/Dockerfiles/Dockerfile-nmap $WORKSPACE
+                        
+                        echo "Building ZAP image..."
+                        docker build -t ${ZAP_IMAGE} -f $WORKSPACE/Dockerfiles/Dockerfile-zap $WORKSPACE
+                    '''
                 }
             }
         }
@@ -48,9 +60,9 @@ pipeline {
         stage('Run Nmap Scan') {
             steps {
                 script {
-                    echo "Running Nmap scan..."
+                    echo "🔍 Running Nmap scan..."
                     sh '''
-                        docker run --rm -v $WORKSPACE:/mnt ${NMAP_IMAGE} python3 /mnt/scripts/scan.py ${NMAP_NETWORK} > $WORKSPACE/reports/nmap_scan_report.txt
+                        docker run --rm -v $WORKSPACE/scripts:/mnt/scripts -v $WORKSPACE/reports:/mnt/reports ${NMAP_IMAGE} python3 /mnt/scripts/scan.py ${NMAP_NETWORK} > $WORKSPACE/reports/nmap_scan_report.txt
                     '''
                 }
             }
@@ -59,14 +71,14 @@ pipeline {
         stage('Run OWASP ZAP Scan') {
             steps {
                 script {
-                    echo "Running OWASP ZAP scan..."
+                    echo "🛡️ Running OWASP ZAP scan..."
                     sh '''
-                        docker run --rm -v $WORKSPACE:/mnt ${ZAP_IMAGE} python3 /mnt/scripts/script.py ${ZAP_URL}
+                        docker run --rm -v $WORKSPACE/scripts:/mnt/scripts -v $WORKSPACE/reports:/mnt/reports ${ZAP_IMAGE} python3 /mnt/scripts/script.py ${ZAP_URL}
                     '''
                     
                     sleep(time: 30, unit: 'SECONDS')
 
-                    echo "Copying ZAP scan report..."
+                    echo "📄 Copying ZAP scan report..."
                     sh '''
                         docker run --rm -v $WORKSPACE/reports:/mnt/reports ${ZAP_IMAGE} cp /usr/src/app/results.html /mnt/reports/zap_scan_report.html
                     '''
@@ -77,15 +89,15 @@ pipeline {
 
     post {
         always {
-            echo "Pipeline finished!"
+            echo "✅ Pipeline execution completed!"
         }
 
         success {
-            echo "The pipeline was successful!"
+            echo "🎉 The pipeline was successful!"
         }
 
         failure {
-            echo "The pipeline failed. Check the logs."
+            echo "❌ The pipeline failed. Please check the logs."
         }
     }
 }
