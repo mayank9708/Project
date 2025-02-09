@@ -1,42 +1,28 @@
-
 pipeline {
     agent any
 
     environment {
-        NMAP_IMAGE = 'my-nmap-scanner'
-        ZAP_IMAGE = 'my-zap-scanner'
-        NMAP_NETWORK = '192.168.1.1/24'  // Fixed: Correct CIDR notation
-        ZAP_URL = 'http://example.com'   // Change this dynamically if needed
+        ZAP_URL = "http://example.com"  // Replace with your target URL
+        TARGET_NETWORK = "192.168.1.1/24" // Replace with your network target
     }
 
     stages {
         stage('Checkout Code') {
             steps {
+                echo "📥 Checking out code from Git..."
                 checkout scm
                 sh 'mkdir -p reports'
-            }
-        }
-
-        stage('Check Workspace') {
-            steps {
-                sh 'pwd && ls -R'
             }
         }
 
         stage('Validate Dockerfiles and Scripts') {
             steps {
                 script {
-                    if (!fileExists("$WORKSPACE/Dockerfiles/Dockerfile-nmap")) {
-                        error "❌ ERROR: Dockerfile-nmap is missing!"
-                    }
-                    if (!fileExists("$WORKSPACE/Dockerfiles/Dockerfile-zap")) {
-                        error "❌ ERROR: Dockerfile-zap is missing!"
-                    }
-                    if (!fileExists("$WORKSPACE/scripts/scan.py")) {
-                        error "❌ ERROR: scan.py is missing!"
-                    }
-                    if (!fileExists("$WORKSPACE/scripts/script.py")) {
-                        error "❌ ERROR: script.py is missing!"
+                    def files = ['Dockerfiles/Dockerfile-nmap', 'Dockerfiles/Dockerfile-zap', 'scripts/scan.py', 'scripts/script.py']
+                    files.each { file ->
+                        if (!fileExists(file)) {
+                            error "🚨 ERROR: ${file} is missing!"
+                        }
                     }
                 }
             }
@@ -46,12 +32,17 @@ pipeline {
             steps {
                 script {
                     echo "⚙️ Building Docker images..."
+
+                    // Build Nmap Image
                     sh '''
-                        echo "Building Nmap image..."
-                        docker build -t ${NMAP_IMAGE} -f $WORKSPACE/Dockerfiles/Dockerfile-nmap $WORKSPACE
-                        
-                        echo "Building ZAP image..."
-                        docker build -t ${ZAP_IMAGE} -f $WORKSPACE/Dockerfiles/Dockerfile-zap $WORKSPACE
+                    echo "Building Nmap image..."
+                    docker build -t my-nmap-scanner -f Dockerfiles/Dockerfile-nmap .
+                    '''
+
+                    // Build OWASP ZAP Image
+                    sh '''
+                    echo "Building ZAP image..."
+                    docker build -t my-zap-scanner -f Dockerfiles/Dockerfile-zap .
                     '''
                 }
             }
@@ -62,35 +53,47 @@ pipeline {
                 script {
                     echo "🔍 Running Nmap scan..."
                     sh '''
-                        docker run --rm \
-                        -v $WORKSPACE/scripts:/mnt/scripts \
-                        -v $WORKSPACE/reports:/mnt/reports \
-                        ${NMAP_IMAGE} python3 /mnt/scripts/scan.py ${NMAP_NETWORK} \
-                        > $WORKSPACE/reports/nmap_scan_report.txt
+                    docker run --rm \
+                    -v $WORKSPACE/scripts:/mnt/scripts \
+                    -v $WORKSPACE/reports:/mnt/reports \
+                    my-nmap-scanner python3 /mnt/scripts/scan.py $TARGET_NETWORK
                     '''
                 }
             }
         }
 
-        stage('Run OWASP ZAP Scan') {
+        stage('Run OWASP ZAP') {
             steps {
                 script {
-                    echo "🛡️ Running OWASP ZAP scan..."
-                    
-                    // Debugging: Print the URL before using it
-                    echo "ZAP_URL is: ${ZAP_URL}"
-
-                   sh '''
-                   docker run --rm \
-                   -v /var/lib/jenkins/workspace/PTAAS/scripts:/mnt/scripts \
-                   -v /var/lib/jenkins/workspace/PTAAS/reports:/mnt/reports \
-                   my-zap-scanner "${ZAP_URL}"
-                   '''
-             
-
-                    echo "📄 Copying ZAP scan report..."
+                    echo "🛡️ Starting OWASP ZAP in background..."
                     sh '''
-                        docker cp $(docker create --rm ${ZAP_IMAGE}):/usr/src/app/results.html $WORKSPACE/reports/zap_scan_report.html
+                    docker run -d --name zap-scanner \
+                    -p 8080:8080 \
+                    -v $WORKSPACE/reports:/mnt/reports \
+                    my-zap-scanner -daemon -port 8080
+                    '''
+                }
+            }
+        }
+
+        stage('Run Python Script for ZAP') {
+            steps {
+                script {
+                    echo "🚀 Running ZAP script..."
+                    sh '''
+                    docker exec zap-scanner python3 /usr/src/app/script.py $ZAP_URL
+                    '''
+                }
+            }
+        }
+
+        stage('Stop OWASP ZAP') {
+            steps {
+                script {
+                    echo "🛑 Stopping and cleaning up OWASP ZAP..."
+                    sh '''
+                    docker stop zap-scanner
+                    docker rm zap-scanner
                     '''
                 }
             }
@@ -99,15 +102,14 @@ pipeline {
 
     post {
         always {
-            echo "✅ Pipeline execution completed!"
+            echo "📄 Archiving reports..."
+            archiveArtifacts artifacts: 'reports/*', fingerprint: true
         }
-
         success {
-            echo "🎉 The pipeline was successful!"
+            echo "✅ Scan completed successfully!"
         }
-
         failure {
-            echo "❌ The pipeline failed. Please check the logs."
+            echo "❌ Pipeline failed. Check logs for details."
         }
     }
 }
