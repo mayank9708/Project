@@ -2,16 +2,11 @@ import sys
 import time
 from zapv2 import ZAPv2
 
-# Ensure we receive exactly one argument
-if len(sys.argv) != 2:
-    print(f"❌ ERROR: Expected 1 argument, got {len(sys.argv)-1}. Usage: python script.py <URL>")
-    sys.exit(1)
+# Extract the last argument as the URL (ignoring extra args)
+target_url = sys.argv[-1].strip()
 
-# Read the target URL
-target_url = sys.argv[1].strip()
-
-# Validate that it's a full URL
-if not target_url.startswith("http://") and not target_url.startswith("https://"):
+# Validate the URL format
+if not target_url.startswith(("http://", "https://")):
     print(f"❌ ERROR: Invalid URL '{target_url}'. Ensure it starts with 'http://' or 'https://'.")
     sys.exit(1)
 
@@ -19,20 +14,6 @@ print(f"🛡️ Starting OWASP ZAP scan on: {target_url}")
 
 # Initialize ZAP API client
 zap = ZAPv2(proxies={'http': 'http://localhost:8080', 'https': 'http://localhost:8080'})
-
-# Wait for ZAP to be fully started
-print("⏳ Waiting for OWASP ZAP to be ready...")
-for i in range(30):  # Try for 30 seconds
-    try:
-        if zap.core.version:
-            print(f"✅ ZAP is ready! Version: {zap.core.version}")
-            break
-    except Exception:
-        print("⚠️ ZAP is not ready yet. Retrying in 2 seconds...")
-        time.sleep(2)
-else:
-    print("❌ ERROR: ZAP is not responding. Exiting.")
-    sys.exit(1)
 
 # Open the target URL
 print(f"📡 Accessing {target_url} via ZAP proxy...")
