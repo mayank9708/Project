@@ -1,6 +1,9 @@
 # Use OWASP ZAP official image
 FROM zaproxy/zap-stable
 
+# Switch to root user
+USER root
+
 # Set working directory
 WORKDIR /usr/src/app
 
