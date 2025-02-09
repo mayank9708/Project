@@ -8,7 +8,7 @@ RUN apk update && apk add --no-cache nmap
 WORKDIR /usr/local/bin
 
 # Copy the Python script to the container
-COPY scripts/scan.py scan.py  # Fixed the path issue
+COPY scripts/scan.py .
 
 # Install dependencies (if needed)
 RUN chmod +x scan.py
