@@ -7,21 +7,15 @@ def run_nmap_scan(target_network):
     print(f"Starting Nmap scan on network: {target_network}")
     
     # Build the Nmap command
-    nmap_command = f"nmap -v -A {target_network}"
-    
+    nmap_command = ["nmap", "-v", "-A", target_network]  # Fixed to use list format
+
     try:
-        # Run the command using subprocess and capture the output
-        result = subprocess.run(nmap_command, shell=True, text=True, capture_output=True)
-        
-        # Check for errors
-        if result.returncode != 0:
-            print(f"Error executing Nmap scan: {result.stderr}")
-        else:
-            print("Scan results:\n")
-            print(result.stdout)
-    
-    except Exception as e:
-        print(f"An error occurred while running the scan: {e}")
+        # Run the command using subprocess
+        result = subprocess.run(nmap_command, text=True, capture_output=True, check=True)
+        print("Scan results:\n", result.stdout)
+
+    except subprocess.CalledProcessError as e:
+        print(f"Error executing Nmap scan: {e.stderr}")
 
 def main():
     """Main function to get the network from the user and run the scan."""

@@ -1,0 +1,17 @@
+# Use an official lightweight base image
+FROM python:3.9-alpine
+
+# Install Nmap
+RUN apk update && apk add --no-cache nmap
+
+# Set working directory
+WORKDIR /usr/local/bin
+
+# Copy the Python script to the container
+COPY scripts/scan.py scan.py  # Fixed the path issue
+
+# Install dependencies (if needed)
+RUN chmod +x scan.py
+
+# Allow dynamic arguments
+ENTRYPOINT ["python3", "scan.py"]

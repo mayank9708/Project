@@ -4,8 +4,8 @@ pipeline {
     environment {
         NMAP_IMAGE = 'my-nmap-scanner'
         ZAP_IMAGE = 'my-zap-scanner'
-        NMAP_NETWORK = '192.168.1.1' // Define the network to scan
-        ZAP_URL = 'http://example.com' // Define the target URL for ZAP scan
+        NMAP_NETWORK = '192.168.1.1/24'  // Fixed: Use correct CIDR notation for network scanning
+        ZAP_URL = 'http://example.com'   // Kept hardcoded URL
     }
 
     stages {
@@ -26,16 +26,16 @@ pipeline {
             steps {
                 script {
                     if (!fileExists("$WORKSPACE/Dockerfiles/Dockerfile-nmap")) {
-                        error "❌ ERROR: Dockerfile-nmap is missing at $WORKSPACE/Dockerfiles/"
+                        error "❌ ERROR: Dockerfile-nmap is missing!"
                     }
                     if (!fileExists("$WORKSPACE/Dockerfiles/Dockerfile-zap")) {
-                        error "❌ ERROR: Dockerfile-zap is missing at $WORKSPACE/Dockerfiles/"
+                        error "❌ ERROR: Dockerfile-zap is missing!"
                     }
                     if (!fileExists("$WORKSPACE/scripts/scan.py")) {
-                        error "❌ ERROR: scan.py is missing at $WORKSPACE/scripts/"
+                        error "❌ ERROR: scan.py is missing!"
                     }
                     if (!fileExists("$WORKSPACE/scripts/script.py")) {
-                        error "❌ ERROR: script.py is missing at $WORKSPACE/scripts/"
+                        error "❌ ERROR: script.py is missing!"
                     }
                 }
             }
@@ -47,7 +47,6 @@ pipeline {
                     echo "⚙️ Building Docker images..."
                     sh '''
                         echo "Building Nmap image..."
-                        ls -l $WORKSPACE/Dockerfiles/
                         docker build -t ${NMAP_IMAGE} -f $WORKSPACE/Dockerfiles/Dockerfile-nmap $WORKSPACE
                         
                         echo "Building ZAP image..."
@@ -62,7 +61,11 @@ pipeline {
                 script {
                     echo "🔍 Running Nmap scan..."
                     sh '''
-                        docker run --rm -v $WORKSPACE/scripts:/mnt/scripts -v $WORKSPACE/reports:/mnt/reports ${NMAP_IMAGE} python3 /mnt/scripts/scan.py ${NMAP_NETWORK} > $WORKSPACE/reports/nmap_scan_report.txt
+                        docker run --rm \
+                        -v $WORKSPACE/scripts:/mnt/scripts \
+                        -v $WORKSPACE/reports:/mnt/reports \
+                        ${NMAP_IMAGE} python3 /mnt/scripts/scan.py ${NMAP_NETWORK} \
+                        > $WORKSPACE/reports/nmap_scan_report.txt
                     '''
                 }
             }
@@ -72,16 +75,25 @@ pipeline {
             steps {
                 script {
                     echo "🛡️ Running OWASP ZAP scan..."
-                    sh '''
-                        docker run --rm -v $WORKSPACE/scripts:/mnt/scripts -v $WORKSPACE/reports:/mnt/reports ${ZAP_IMAGE} python3 /mnt/scripts/script.py ${ZAP_URL}
-                    '''
+                    
+                    // Debugging: Print the URL before using it
+                    echo "ZAP_URL is: ${ZAP_URL}"
+
+                    sh """
+                        docker run --rm \
+                        -v $WORKSPACE/scripts:/mnt/scripts \
+                        -v $WORKSPACE/reports:/mnt/reports \
+                        ${ZAP_IMAGE} python3 /mnt/scripts/script.py '${ZAP_URL}'
+                    """
                     
                     sleep(time: 30, unit: 'SECONDS')
 
                     echo "📄 Copying ZAP scan report..."
-                    sh '''
-                        docker run --rm -v $WORKSPACE/reports:/mnt/reports ${ZAP_IMAGE} cp /usr/src/app/results.html /mnt/reports/zap_scan_report.html
-                    '''
+                    sh """
+                        docker run --rm \
+                        -v $WORKSPACE/reports:/mnt/reports \
+                        ${ZAP_IMAGE} cp /usr/src/app/results.html /mnt/reports/zap_scan_report.html
+                    """
                 }
             }
         }
