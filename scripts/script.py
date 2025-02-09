@@ -12,6 +12,7 @@ if len(sys.argv) != 2:
 
 # Read and validate the target URL
 target_url = sys.argv[1].strip()
+print(f"🛡️ Running OWASP ZAP scan on: {target_url}")
 if not target_url.startswith(("http://", "https://")):
     print(f"❌ ERROR: Invalid URL '{target_url}'. Ensure it starts with 'http://' or 'https://'.")
     sys.exit(1)

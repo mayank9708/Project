@@ -79,13 +79,12 @@ pipeline {
                     // Debugging: Print the URL before using it
                     echo "ZAP_URL is: ${ZAP_URL}"
 
-                    sh """
-                        docker run --rm \
-                        -v $WORKSPACE/scripts:/mnt/scripts \
-                        -v $WORKSPACE/reports:/mnt/reports \
-                        ${ZAP_IMAGE} python3 /mnt/scripts/script.py '${ZAP_URL}'
-                    """
-                    
+                   sh '''
+                     docker run --rm \
+                     -v /var/lib/jenkins/workspace/PTAAS/scripts:/mnt/scripts \ 
+                     -v /var/lib/jenkins/workspace/PTAAS/reports:/mnt/reports \
+                      my-zap-scanner python3 /mnt/scripts/script.py http://example.com
+                     '''                    
                     sleep(time: 30, unit: 'SECONDS')
 
                     echo "📄 Copying ZAP scan report..."
