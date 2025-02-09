@@ -1,11 +1,12 @@
+
 pipeline {
     agent any
 
     environment {
         NMAP_IMAGE = 'my-nmap-scanner'
         ZAP_IMAGE = 'my-zap-scanner'
-        NMAP_NETWORK = '192.168.1.1/24'  // Fixed: Use correct CIDR notation for network scanning
-        ZAP_URL = 'http://example.com'   // Kept hardcoded URL
+        NMAP_NETWORK = '192.168.1.1/24'  // Fixed: Correct CIDR notation
+        ZAP_URL = 'http://example.com'   // Change this dynamically if needed
     }
 
     stages {
@@ -80,19 +81,17 @@ pipeline {
                     echo "ZAP_URL is: ${ZAP_URL}"
 
                    sh '''
-                     docker run --rm \
-                     -v /var/lib/jenkins/workspace/PTAAS/scripts:/mnt/scripts \ 
-                     -v /var/lib/jenkins/workspace/PTAAS/reports:/mnt/reports \
-                      my-zap-scanner python3 /mnt/scripts/script.py http://example.com
-                     '''                    
-                    sleep(time: 30, unit: 'SECONDS')
+                   docker run --rm \
+                   -v /var/lib/jenkins/workspace/PTAAS/scripts:/mnt/scripts \
+                   -v /var/lib/jenkins/workspace/PTAAS/reports:/mnt/reports \
+                   my-zap-scanner "${ZAP_URL}"
+                   '''
+             
 
                     echo "📄 Copying ZAP scan report..."
-                    sh """
-                        docker run --rm \
-                        -v $WORKSPACE/reports:/mnt/reports \
-                        ${ZAP_IMAGE} cp /usr/src/app/results.html /mnt/reports/zap_scan_report.html
-                    """
+                    sh '''
+                        docker cp $(docker create --rm ${ZAP_IMAGE}):/usr/src/app/results.html $WORKSPACE/reports/zap_scan_report.html
+                    '''
                 }
             }
         }

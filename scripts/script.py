@@ -1,50 +1,54 @@
-import sys
+import subprocess
 import time
 from zapv2 import ZAPv2
 
-# Debug: Print received arguments
-print(f"🔍 Received arguments: {sys.argv}")
+# Target URL for scanning
+target_url = "http://example.com"
+ZAP_PORT = "8080"
+ZAP_API_URL = f"http://127.0.0.1:{ZAP_PORT}"
 
-# Ensure exactly one argument is passed
-if len(sys.argv) != 2:
-    print(f"❌ ERROR: Expected 1 argument, got {len(sys.argv)-1}. Usage: python script.py <URL>")
-    sys.exit(1)
+# Start OWASP ZAP in daemon mode
+print("🛡️ Starting OWASP ZAP...")
+zap_process = subprocess.Popen(
+    ["zap.sh", "-daemon", "-port", ZAP_PORT],
+    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+)
 
-# Read and validate the target URL
-target_url = sys.argv[1].strip()
-print(f"🛡️ Running OWASP ZAP scan on: {target_url}")
-if not target_url.startswith(("http://", "https://")):
-    print(f"❌ ERROR: Invalid URL '{target_url}'. Ensure it starts with 'http://' or 'https://'.")
-    sys.exit(1)
-
-print(f"🛡️ Running OWASP ZAP scan on: {target_url}")
-
-# Initialize ZAP API client (Without Proxy)
+# Wait for ZAP to start
+print("⏳ Waiting for ZAP to become ready...")
 zap = ZAPv2()
+while True:
+    try:
+        version = zap.core.version
+        print(f"✅ ZAP is ready! Version: {version}")
+        break
+    except:
+        time.sleep(5)
 
-# Spider the target URL
+# Start Spider Scan
 print(f"🕷️ Starting Spider Scan on {target_url}...")
 scan_id = zap.spider.scan(target_url)
-
 while int(zap.spider.status(scan_id)) < 100:
-    print(f"⏳ Spider progress: {zap.spider.status(scan_id)}%")
+    print(f"⏳ Spider Scan progress: {zap.spider.status(scan_id)}%")
     time.sleep(5)
-
 print("✅ Spider Scan completed!")
 
-# Start active scan
-print(f"🚀 Starting Active Scan on {target_url}...")
+# Start Active Scan
+print("🚀 Starting Active Scan...")
 scan_id = zap.ascan.scan(target_url)
-
 while int(zap.ascan.status(scan_id)) < 100:
-    print(f"⏳ Scan progress: {zap.ascan.status(scan_id)}%")
+    print(f"⏳ Active Scan progress: {zap.ascan.status(scan_id)}%")
     time.sleep(5)
-
 print("✅ Active Scan completed!")
 
-# Save the scan report
-report_path = "/mnt/reports/results.html"
-with open(report_path, "w") as report_file:
-    report_file.write(zap.core.htmlreport())
+# Generate Report
+print("📄 Generating ZAP Report...")
+report = zap.core.htmlreport()
+with open("zap_report.html", "w") as f:
+    f.write(report)
 
-print(f"📄 Report saved at {report_path}")
+print("✅ Scan completed! Report saved as zap_report.html")
+
+# Stop OWASP ZAP
+zap.core.shutdown()
+print("🛑 OWASP ZAP stopped.")
