@@ -2,21 +2,26 @@ import sys
 import time
 from zapv2 import ZAPv2
 
-# Extract the last argument as the URL (ignoring extra args)
-target_url = sys.argv[-1].strip()
+# Ensure we receive exactly one argument
+if len(sys.argv) != 2:
+    print(f"❌ ERROR: Expected 1 argument, got {len(sys.argv)-1}. Usage: python script.py <URL>")
+    sys.exit(1)
 
-# Validate the URL format
-if not target_url.startswith(("http://", "https://")):
+# Read the target URL
+target_url = sys.argv[1].strip()
+
+# Validate that it's a full URL
+if not target_url.startswith("http://") and not target_url.startswith("https://"):
     print(f"❌ ERROR: Invalid URL '{target_url}'. Ensure it starts with 'http://' or 'https://'.")
     sys.exit(1)
 
 print(f"🛡️ Starting OWASP ZAP scan on: {target_url}")
 
-# Initialize ZAP API client
-zap = ZAPv2(proxies={'http': 'http://localhost:8080', 'https': 'http://localhost:8080'})
+# Initialize ZAP API client WITHOUT PROXY
+zap = ZAPv2()
 
 # Open the target URL
-print(f"📡 Accessing {target_url} via ZAP proxy...")
+print(f"📡 Accessing {target_url}...")
 zap.urlopen(target_url)
 time.sleep(2)  # Allow time for the request to process
 
