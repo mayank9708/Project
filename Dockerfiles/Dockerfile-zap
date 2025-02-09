@@ -11,7 +11,8 @@ USER root
 RUN apt-get update && apt-get install -y python3 python3-pip
 
 # Copy your script into the container
-COPY scripts/script.py script.py  # Fixed the path issue
+COPY ./scripts/script.py /usr/local/bin/script.py
+
 
 # Make the script executable
 RUN chmod +x script.py
