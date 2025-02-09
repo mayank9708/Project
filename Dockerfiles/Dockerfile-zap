@@ -15,7 +15,8 @@ COPY ./scripts/script.py /usr/local/bin/script.py
 
 
 # Make the script executable
-RUN chmod +x script.py
+RUN chmod +x /usr/local/bin/script.py
+
 
 # Allow URL input dynamically
 ENTRYPOINT ["python3", "script.py"]
