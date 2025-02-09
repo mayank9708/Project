@@ -1,23 +1,17 @@
-# Use the stable ZAP image as the base image
+# Use OWASP ZAP official image
 FROM zaproxy/zap-stable
 
-# Set the working directory
+# Set working directory
 WORKDIR /usr/src/app
 
-# Switch to root user to install necessary packages
-USER root
-
-# Update apt and install python3 and pip
+# Install Python (if not already available)
 RUN apt-get update && apt-get install -y python3 python3-pip
 
-# Copy your script into the container
-COPY ./scripts/script.py /usr/local/bin/script.py
+# Copy the script into the container
+COPY scripts/script.py /usr/src/app/script.py
 
+# Ensure execution permissions
+RUN chmod +x /usr/src/app/script.py
 
-# Make the script executable
-RUN chmod +x /usr/local/bin/script.py
-
-
-# Allow URL input dynamically
-ENTRYPOINT ["python3", "script.py"]
-CMD []
+# Default command to execute the script
+ENTRYPOINT ["python3", "/usr/src/app/script.py"]
