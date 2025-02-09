@@ -2,45 +2,48 @@ import sys
 import time
 from zapv2 import ZAPv2
 
-# Ensure we receive exactly one argument
+# Debug: Print received arguments
+print(f"🔍 Received arguments: {sys.argv}")
+
+# Ensure exactly one argument is passed
 if len(sys.argv) != 2:
     print(f"❌ ERROR: Expected 1 argument, got {len(sys.argv)-1}. Usage: python script.py <URL>")
     sys.exit(1)
 
-# Read the target URL
+# Read and validate the target URL
 target_url = sys.argv[1].strip()
-
-# Validate that it's a full URL
-if not target_url.startswith("http://") and not target_url.startswith("https://"):
+if not target_url.startswith(("http://", "https://")):
     print(f"❌ ERROR: Invalid URL '{target_url}'. Ensure it starts with 'http://' or 'https://'.")
     sys.exit(1)
 
-print(f"🛡️ Starting OWASP ZAP scan on: {target_url}")
+print(f"🛡️ Running OWASP ZAP scan on: {target_url}")
 
-# Initialize ZAP API client WITHOUT PROXY
+# Initialize ZAP API client (Without Proxy)
 zap = ZAPv2()
 
-# Open the target URL
-print(f"📡 Accessing {target_url}...")
-zap.urlopen(target_url)
-time.sleep(2)  # Allow time for the request to process
+# Spider the target URL
+print(f"🕷️ Starting Spider Scan on {target_url}...")
+scan_id = zap.spider.scan(target_url)
+
+while int(zap.spider.status(scan_id)) < 100:
+    print(f"⏳ Spider progress: {zap.spider.status(scan_id)}%")
+    time.sleep(5)
+
+print("✅ Spider Scan completed!")
 
 # Start active scan
 print(f"🚀 Starting Active Scan on {target_url}...")
 scan_id = zap.ascan.scan(target_url)
 
-if scan_id.isdigit():
-    while int(zap.ascan.status(scan_id)) < 100:
-        print(f"⏳ Scan progress: {zap.ascan.status(scan_id)}%")
-        time.sleep(5)
-else:
-    print("❌ ERROR: Failed to start ZAP scan.")
-    sys.exit(1)
+while int(zap.ascan.status(scan_id)) < 100:
+    print(f"⏳ Scan progress: {zap.ascan.status(scan_id)}%")
+    time.sleep(5)
 
-print("✅ Scan completed!")
+print("✅ Active Scan completed!")
 
-# Save the report
-with open("/usr/src/app/results.html", "w") as report_file:
+# Save the scan report
+report_path = "/mnt/reports/results.html"
+with open(report_path, "w") as report_file:
     report_file.write(zap.core.htmlreport())
 
-print("📄 Report saved as results.html")
+print(f"📄 Report saved at {report_path}")
