@@ -1,5 +1,5 @@
 # Use the stable ZAP image as the base image
-FROM zaproxy/zap
+FROM zaproxy/zap-stable
 
 # Set the working directory
 WORKDIR /usr/src/app
