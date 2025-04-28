@@ -12,7 +12,8 @@ Project
 Start
   │
   ├──> Phase 1: Planning and Setup
-  │       │
+  │      
+  │
   │       ├── Define Project Scope and Objectives
   │       │
   │       ├── Choose Tools for Scanning and DevOps (e.g., OWASP ZAP, Nmap, Docker, GitLab CI/CD)
@@ -21,7 +22,8 @@ Start
   │
  
   ├──> Phase 2: Vulnerability Scanning Automation
-  │       │
+  │     
+  │
   │       ├── Set Up Automated Web Scanning 
   │       │        ├── Integrate OWASP ZAP for Basic Web Scans
   │       │        └── Write Python Script to Trigger ZAP Scans
@@ -32,7 +34,8 @@ Start
   │
  
   ├──> Phase 3: DevOps Integration for Continuous Testing
-  │       │
+  │     
+  │
   │       ├── Containerize Scanning Tools with Docker 
   │       │
   │       ├── Create CI/CD Pipeline for Automated Security Tests 
@@ -46,19 +49,22 @@ Start
 
   
   ├──> Phase 4: DevSecOps and Monitoring
-  │       │
+  │     
+  │
   │       ├── Automate Infrastructure Security with Ansible/Terraform
   │       │
   │       └── Configure Logging and Monitoring with ELK Stack/Prometheus
   │
  
   └──> Final Phase: Testing and Documentation
-          │
+        
+  │
           ├── Test Platform Functionality and show bugs
           │
           ├── Document Project Steps and Features
           │
           └── Workflow  for Deployment 
+
 
 
 
