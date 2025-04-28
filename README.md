@@ -19,6 +19,7 @@ Start
   │       │
   │       └── Set Up Version Control Repository (Git)
   │
+ 
   ├──> Phase 2: Vulnerability Scanning Automation
   │       │
   │       ├── Set Up Automated Web Scanning 
@@ -29,6 +30,7 @@ Start
   │                ├── Integrate Nmap for Basic Network Scans
   │                └── Automate Nmap Execution with Python Scripts
   │
+ 
   ├──> Phase 3: DevOps Integration for Continuous Testing
   │       │
   │       ├── Containerize Scanning Tools with Docker 
@@ -39,20 +41,17 @@ Start
   │       │
   │       └── Configure Slack/Email Notifications for Scan Results
   │
-  ├──> Phase 4: Dashboard and Reporting
-  │       │
-  │       ├── Build a Simple Dashboard using Flask
-  │       │
-  │       ├── Connect Dashboard to Database (SQLite/MySQL)
-  │       │
-  │       └── Generate PDF Reports of Vulnerabilities with Python
-  │
-  ├──> Phase 5: DevSecOps and Monitoring
+ 
+
+
+  
+  ├──> Phase 4: DevSecOps and Monitoring
   │       │
   │       ├── Automate Infrastructure Security with Ansible/Terraform
   │       │
   │       └── Configure Logging and Monitoring with ELK Stack/Prometheus
   │
+ 
   └──> Final Phase: Testing and Documentation
           │
           ├── Test Platform Functionality and show bugs
@@ -103,7 +102,6 @@ The following is the architecture of the continuous integration and deployment p
 - Python 3.x
 - Terraform (for infrastructure provisioning)
 - Jenkins (for CI/CD pipeline automation)
-- AWS account (for deploying to AWS EKS)
 - GitHub or GitLab repository for version control
 
 
