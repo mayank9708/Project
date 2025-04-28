@@ -1,23 +1,24 @@
-# Use the official OWASP ZAP stable image
-FROM zaproxy/zap-stable
+# Start from your Nmap base image
+FROM mayankraj851126/nmap:latest
 
 # Switch to root user to install dependencies
 USER root
 
-# Set working directory
+# Set working directory inside the container
 WORKDIR /usr/src/app
 
-# Update and install Python for running ZAP scripts
-RUN apt-get update && apt-get install -y python3 python3-pip
+# Install Python (for running your scan.py)
+RUN apt-get update && apt-get install -y python3 python3-pip && apt-get clean
 
-# Copy the automation script for ZAP
-COPY scripts/script.py /usr/src/app/script.py
+# Copy your scan.py script into the container
+COPY scan.py /usr/src/app/scan.py
 
 # Set execute permissions for the script
-RUN chmod +x /usr/src/app/script.py
+RUN chmod +x /usr/src/app/scan.py
 
-# Set ZAP as the default entry point
-ENTRYPOINT ["/usr/bin/zap.sh"]
+# Set the default entry point to run your Python script
+ENTRYPOINT ["python3", "scan.py"]
 
-# Run ZAP in daemon mode on port 8080 (you can change this)
-CMD ["-daemon", "-port", "8080"]
+# Specify default arguments (network) to pass when the container is run
+CMD ["192.168.1.0/24"]  # You can replace this with a default network or leave it empty
+
